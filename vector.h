@@ -139,7 +139,7 @@ public:
         if (sz >= max_sz)
             reallocate(max_sz + max_sz / 2 + 1);
         for (size_t i = sz; i > current; --i)
-            values[i + 1] = values[i];
+            values[i] = values[i - 1];
         values[current] = val;
         ++sz;
         return iterator{values + current};
@@ -150,8 +150,8 @@ public:
         if (diff < 0 || static_cast<size_type>(diff) >= sz)
             throw std::runtime_error{"Iterator out of bounds"};
         auto current = static_cast<size_type>(diff);
-        for (size_t i = sz; i > current; --i)
-            values[i + 1] = values[i];
+        for (size_t i = current; i < sz; ++i)
+            values[i] = values[i + 1];
         --sz;
         return iterator{values + current};
     }
