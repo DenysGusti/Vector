@@ -116,19 +116,19 @@ public:
     }
 
     [[nodiscard]] iterator begin() {
-        return iterator{values};
+        return iterator{values, values, this};
     }
 
     [[nodiscard]] iterator end() {
-        return iterator{values + sz};
+        return iterator{values + sz, values, this};
     }
 
     [[nodiscard]] const_iterator begin() const {
-        return const_iterator{values};
+        return const_iterator{values, values, this};
     }
 
     [[nodiscard]] const_iterator end() const {
-        return const_iterator{values + sz};
+        return const_iterator{values + sz, values, this};
     }
 
     iterator insert(const_iterator pos, const_reference val) {
@@ -184,46 +184,62 @@ public:
         using difference_type = Vector<T>::difference_type;
         using iterator_category = std::forward_iterator_tag;
 
-        Iterator() = default;
-
-        explicit Iterator(pointer ptr_) : ptr{ptr_} {}
+        explicit Iterator(pointer ptr_ = nullptr, pointer original_begin_ = nullptr, const Vector *vector_ = nullptr) :
+                ptr{ptr_}, original_begin{original_begin_}, vector{vector_} {}
 
         reference operator*() const {
+            if (!properIterator())
+                throw std::runtime_error{"Bad Iterator dereference"};
             return *ptr;
         }
 
         pointer operator->() const {
+            if (!properIterator())
+                throw std::runtime_error{"Bad Iterator dereference"};
             return ptr;
         }
 
         iterator &operator++() {
-            ++ptr;
+            if (properIterator())
+                ++ptr;
             return *this;
         }
 
         iterator operator++(int) { // NOLINT(*-dcl21-cpp)
-            iterator old;
+            iterator old = *this;
             operator++();
             return old;
         }
 
         // not global: to satisfy the std::equality_comparable; linker error!
         bool operator==(const const_iterator &other) const {
-            return ptr == other.ptr;
+            return ptr == other.ptr && original_begin == other.original_begin && vector == other.vector;
         }
 
         // not global: to satisfy the std::equality_comparable; linker error!
         bool operator!=(const const_iterator &other) const {
-            return ptr != other.ptr;
+            return ptr != other.ptr || original_begin != other.original_begin || vector != other.vector;
         }
 
         // we allow unintentional implicit conversions, so not explicit
         operator const_iterator() const { // NOLINT(google-explicit-constructor)
-            return const_iterator{ptr};
+            return const_iterator{ptr, original_begin, vector};
         }
 
     private:
         pointer ptr = nullptr;
+        pointer original_begin = nullptr;
+        const Vector *vector = nullptr;
+
+        [[nodiscard]] bool properIterator() const {
+            if (!(ptr && original_begin && vector))
+                return false;
+            if (*this == vector->end())
+                return false;
+            if (Iterator{original_begin, original_begin, vector} != vector->begin())
+                return false;
+            return true;
+        }
     };
 
     class ConstIterator {
@@ -234,33 +250,38 @@ public:
         using difference_type = Vector<T>::difference_type;
         using iterator_category = std::forward_iterator_tag;
 
-        ConstIterator() = default;
-
-        explicit ConstIterator(pointer ptr_) : ptr{ptr_} {}
+        explicit ConstIterator(pointer ptr_ = nullptr, pointer original_begin_ = nullptr,
+                               const Vector *vector_ = nullptr) :
+                ptr{ptr_}, original_begin{original_begin_}, vector{vector_} {}
 
         reference operator*() const {
+            if (!properIterator())
+                throw std::runtime_error{"Bad ConstIterator dereference"};
             return *ptr;
         }
 
         pointer operator->() const {
+            if (!properIterator())
+                throw std::runtime_error{"Bad ConstIterator dereference"};
             return ptr;
         }
 
         bool operator==(const const_iterator &other) const {
-            return ptr == other.ptr;
+            return ptr == other.ptr && original_begin == other.original_begin && vector == other.vector;
         }
 
         bool operator!=(const const_iterator &other) const {
-            return ptr != other.ptr;
+            return ptr != other.ptr || original_begin != other.original_begin || vector != other.vector;
         }
 
         const_iterator &operator++() {
-            ++ptr;
+            if (properIterator())
+                ++ptr;
             return *this;
         }
 
         const_iterator operator++(int) { // NOLINT(*-dcl21-cpp)
-            const_iterator old;
+            const_iterator old = *this;
             operator++();
             return old;
         }
@@ -275,6 +296,18 @@ public:
 
     private:
         pointer ptr = nullptr;
+        pointer original_begin = nullptr;
+        const Vector *vector = nullptr;
+
+        [[nodiscard]] bool properIterator() const {
+            if (!(ptr && original_begin && vector))
+                return false;
+            if (*this == vector->end())
+                return false;
+            if (ConstIterator{original_begin, original_begin, vector} != vector->begin())
+                return false;
+            return true;
+        }
     };
 };
 
