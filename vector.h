@@ -142,7 +142,7 @@ public:
             values[i] = values[i - 1];  // no overflow because now i >= 1, current <= sz, loop doesn't work for sz = 0
         values[current] = val;
         ++sz;
-        return iterator{values + current};
+        return iterator{values + current, values, this};
     }
 
     iterator erase(const_iterator pos) {
@@ -153,7 +153,7 @@ public:
         for (size_t i = current; i < sz - 1; ++i)  // no overflow because now sz >= 1
             values[i] = values[i + 1];
         --sz;
-        return iterator{values + current};
+        return iterator{values + current, values, this};
     }
 
 private:
